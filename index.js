@@ -22,7 +22,9 @@ async function run() {
   const sessionCollection = client
     .db("collaborativeStudyPaltform")
     .collection("session");
-  const userCollection = client.db("collaborativeStudyPaltform").collection("users");
+  const userCollection = client
+    .db("collaborativeStudyPaltform")
+    .collection("users");
   try {
     app.get("/session", async (req, res) => {
       const result = await sessionCollection.find().toArray();
@@ -35,15 +37,30 @@ async function run() {
       const result = await sessionCollection.findOne(query);
       res.send(result);
     });
-
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+        res.send(user);
+      } else {
+        res.status(404).send({ message: "User not found" });
+      }
+    });
     // user api
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+
     app.post("/users", async (req, res) => {
       const user = req.body;
-    //   const query = { email: user.email };
-    //   const existingUser = await userCollection.findOne(query);
-    //   if (existingUser) {
-    //     return res.send({ massage: "user already eexist ", insertedId: null });
-    //   }
+      const query = { email: user.email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ massage: "user already eexist ", insertedId: null });
+      }
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
