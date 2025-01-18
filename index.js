@@ -26,8 +26,18 @@ async function run() {
     .db("collaborativeStudyPaltform")
     .collection("users");
   try {
+    // ================================
+    // session api
+    // ===============================
     app.get("/session", async (req, res) => {
-      const result = await sessionCollection.find().toArray();
+      const tutorEmail = req.query.tutorEmail; // Query parameter for filtering
+      let query = {};
+
+      if (tutorEmail) {
+        query = { tutorEmail: tutorEmail };
+      }
+
+      const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
     // session find  One by Id
@@ -39,10 +49,14 @@ async function run() {
     });
     app.post("/session", async (req, res) => {
       const session = req.body;
-      
+
       const result = await sessionCollection.insertOne(session);
       res.send(result);
     });
+
+    // ============================
+    // users api
+    // ============================
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -53,12 +67,12 @@ async function run() {
         res.status(404).send({ message: "User not found" });
       }
     });
+
     // user api
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
-
 
     app.post("/users", async (req, res) => {
       const user = req.body;
