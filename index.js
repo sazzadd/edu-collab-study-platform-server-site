@@ -25,6 +25,9 @@ async function run() {
   const userCollection = client
     .db("collaborativeStudyPaltform")
     .collection("users");
+  const notesCollection = client
+    .db("collaborativeStudyPaltform")
+    .collection("notes");
   try {
     // ================================
     // session api
@@ -73,7 +76,7 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
-
+    
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -84,6 +87,26 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+    // ============
+    // notes api
+    // ============
+    app.post("/notes", async (req, res) => {
+      const note = req.body;
+    
+      // Validate required fields
+      if (!note.title || !note.description || !note.date || !note.email) {
+        return res.status(400).send({ message: "All fields are required!" });
+      }
+    
+      try {
+        const result = await notesCollection.insertOne(note);
+        res.send(result);
+      } catch (error) {
+        console.error("Error inserting note:", error);
+        res.status(500).send({ message: "Failed to add the note." });
+      }
+    });
+    
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
