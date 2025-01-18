@@ -76,7 +76,7 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
-    
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -92,12 +92,12 @@ async function run() {
     // ============
     app.post("/notes", async (req, res) => {
       const note = req.body;
-    
+
       // Validate required fields
       if (!note.title || !note.description || !note.date || !note.email) {
         return res.status(400).send({ message: "All fields are required!" });
       }
-    
+
       try {
         const result = await notesCollection.insertOne(note);
         res.send(result);
@@ -106,7 +106,34 @@ async function run() {
         res.status(500).send({ message: "Failed to add the note." });
       }
     });
-    
+    // notes api
+    app.get("/notes/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      try {
+        const query = { email: userEmail }; // Filter notes by the user's email
+        const result = await notesCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching notes:", error);
+        res.status(500).send({ message: "Failed to fetch the notes." });
+      }
+    });
+
+  app.delete("/notes/:id", async (req, res) => {
+  const noteId = req.params.id;
+  try {
+    const result = await notesCollection.deleteOne({ _id: new ObjectId(noteId) });
+    if (result.deletedCount === 1) {
+      res.status(200).send({ message: "Note deleted successfully" });
+    } else {
+      res.status(404).send({ message: "Note not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting note:", error);
+    res.status(500).send({ message: "Failed to delete the note." });
+  }
+});
+
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
