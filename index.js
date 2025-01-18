@@ -119,21 +119,49 @@ async function run() {
       }
     });
 
-  app.delete("/notes/:id", async (req, res) => {
-  const noteId = req.params.id;
-  try {
-    const result = await notesCollection.deleteOne({ _id: new ObjectId(noteId) });
-    if (result.deletedCount === 1) {
-      res.status(200).send({ message: "Note deleted successfully" });
-    } else {
-      res.status(404).send({ message: "Note not found" });
-    }
-  } catch (error) {
-    console.error("Error deleting note:", error);
-    res.status(500).send({ message: "Failed to delete the note." });
-  }
-});
+    app.delete("/notes/:id", async (req, res) => {
+      const id = req.params.id;
 
+      try {
+        const result = await notesCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 1) {
+          res.status(200).send({ message: "Note deleted successfully" });
+        } else {
+          res.status(404).send({ message: "Note not found" });
+        }
+      } catch (error) {
+        console.error("Error deleting note:", error);
+        res.status(500).send({ message: "Failed to delete the note" });
+      }
+
+
+    });
+    app.put("/notes/:id", async (req, res) => {
+      const id = req.params.id;
+      const { title, description, date } = req.body;
+    
+      try {
+        const result = await notesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: { title, description, date },
+          }
+        );
+    
+        if (result.modifiedCount === 1) {
+          res.status(200).send({ message: "Note updated successfully" });
+        } else {
+          res.status(404).send({ message: "Note not found" });
+        }
+      } catch (error) {
+        console.error("Error updating note:", error);
+        res.status(500).send({ message: "Failed to update the note" });
+      }
+    });
+    
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
