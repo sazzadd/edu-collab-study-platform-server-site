@@ -52,9 +52,11 @@ async function run() {
       res.send(result);
     });
     // Update session status to approved or pending
+    // Update session status to approved, pending, or rejected
+    // Update session status to approved, pending, or rejected
     app.patch("/session/:id", async (req, res) => {
       const { id } = req.params;
-      const { registrationFee, status } = req.body; // Receive fee and status from the request body
+      const { registrationFee, status, adminFeedback } = req.body; // Receive feedback for rejection
 
       try {
         // Check if valid status
@@ -62,10 +64,20 @@ async function run() {
           return res.status(400).send("Invalid status");
         }
 
+        // Build update object
+        const updateFields = { status };
+        if (status === "rejected" && adminFeedback) {
+          updateFields.adminFeedback = adminFeedback;
+        }
+        if (status === "approved" && registrationFee !== undefined) {
+          updateFields.registrationFee = registrationFee;
+        }
+
         const result = await sessionCollection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: { registrationFee, status } }
+          { $set: updateFields }
         );
+
         res.send(result);
       } catch (error) {
         res.status(500).send("Error updating session status");
