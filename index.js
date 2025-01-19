@@ -72,10 +72,33 @@ async function run() {
     });
 
     // user api
+    // app.get("/users", async (req, res) => {
+    //   const result = await userCollection.find().toArray();
+    //   res.send(result);
+    // });
     app.get("/users", async (req, res) => {
-      const result = await userCollection.find().toArray();
-      res.send(result);
+      const { searchText } = req.query;  // Extract search text from query params
+      let query = {};
+    
+      if (searchText) {
+        // Search by name or email, ignoring case
+        query = {
+          $or: [
+            { name: { $regex: searchText, $options: "i" } },  // Case-insensitive search by name
+            { email: { $regex: searchText, $options: "i" } },  // Case-insensitive search by email
+          ],
+        };
+      }
+    
+      try {
+        const result = await userCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).send({ message: "Failed to fetch users." });
+      }
     });
+    
 
     app.post("/users", async (req, res) => {
       const user = req.body;
