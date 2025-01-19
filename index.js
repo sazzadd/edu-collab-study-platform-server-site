@@ -87,6 +87,33 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
+    // PATCH endpoint to update user role
+    app.patch("/users/:id/role", async (req, res) => {
+      const id = req.params.id;
+      const { role } = req.body; // New role to update
+
+      if (!["admin", "student", "tutor"].includes(role)) {
+        return res.status(400).send({ message: "Invalid role provided" });
+      }
+
+      try {
+        const result = await userCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { role } }
+        );
+
+        if (result.modifiedCount === 1) {
+          res.status(200).send({ message: `Role updated to ${role}` });
+        } else {
+          res.status(404).send({ message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error updating role:", error);
+        res.status(500).send({ message: "Failed to update role" });
+      }
+    });
+
     // ============
     // notes api
     // ============
@@ -136,13 +163,11 @@ async function run() {
         console.error("Error deleting note:", error);
         res.status(500).send({ message: "Failed to delete the note" });
       }
-
-
     });
     app.put("/notes/:id", async (req, res) => {
       const id = req.params.id;
       const { title, description, date } = req.body;
-    
+
       try {
         const result = await notesCollection.updateOne(
           { _id: new ObjectId(id) },
@@ -150,7 +175,7 @@ async function run() {
             $set: { title, description, date },
           }
         );
-    
+
         if (result.modifiedCount === 1) {
           res.status(200).send({ message: "Note updated successfully" });
         } else {
@@ -161,7 +186,6 @@ async function run() {
         res.status(500).send({ message: "Failed to update the note" });
       }
     });
-    
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
