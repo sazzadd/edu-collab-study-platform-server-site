@@ -87,12 +87,14 @@ async function run() {
     // Reject session (delete it)
     app.delete("/session/:id", async (req, res) => {
       const { id } = req.params;
-
       try {
         const result = await sessionCollection.deleteOne({
           _id: new ObjectId(id),
         });
-        res.send(result);
+        if (result.deletedCount === 0) {
+          return res.status(404).send("Session not found");
+        }
+        res.send({ message: "Session deleted successfully" });
       } catch (error) {
         res.status(500).send("Error deleting session");
       }
