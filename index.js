@@ -32,6 +32,7 @@ async function run() {
     // ================================
     // session api
     // ===============================
+
     app.get("/session", async (req, res) => {
       const tutorEmail = req.query.tutorEmail; // Query parameter for filtering
       let query = {};
@@ -50,6 +51,41 @@ async function run() {
       const result = await sessionCollection.findOne(query);
       res.send(result);
     });
+    // Update session status to approved or pending
+    app.patch("/session/:id", async (req, res) => {
+      const { id } = req.params;
+      const { registrationFee, status } = req.body; // Receive fee and status from the request body
+
+      try {
+        // Check if valid status
+        if (!["pending", "approved", "rejected"].includes(status)) {
+          return res.status(400).send("Invalid status");
+        }
+
+        const result = await sessionCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { registrationFee, status } }
+        );
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Error updating session status");
+      }
+    });
+
+    // Reject session (delete it)
+    app.delete("/session/:id", async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        const result = await sessionCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send("Error deleting session");
+      }
+    });
+
     app.post("/session", async (req, res) => {
       const session = req.body;
 
@@ -77,19 +113,19 @@ async function run() {
     //   res.send(result);
     // });
     app.get("/users", async (req, res) => {
-      const { searchText } = req.query;  // Extract search text from query params
+      const { searchText } = req.query; // Extract search text from query params
       let query = {};
-    
+
       if (searchText) {
         // Search by name or email, ignoring case
         query = {
           $or: [
-            { name: { $regex: searchText, $options: "i" } },  // Case-insensitive search by name
-            { email: { $regex: searchText, $options: "i" } },  // Case-insensitive search by email
+            { name: { $regex: searchText, $options: "i" } }, // Case-insensitive search by name
+            { email: { $regex: searchText, $options: "i" } }, // Case-insensitive search by email
           ],
         };
       }
-    
+
       try {
         const result = await userCollection.find(query).toArray();
         res.send(result);
@@ -98,7 +134,6 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch users." });
       }
     });
-    
 
     app.post("/users", async (req, res) => {
       const user = req.body;
