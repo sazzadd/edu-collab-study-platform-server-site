@@ -33,17 +33,47 @@ async function run() {
     // session api
     // ===============================
 
-    app.get("/session", async (req, res) => {
-      const tutorEmail = req.query.tutorEmail; // Query parameter for filtering
-      let query = {};
+    // app.get("/session", async (req, res) => {
+    //   const tutorEmail = req.query.tutorEmail; // Query parameter for filtering
+    //   let query = {};
 
+    //   if (tutorEmail) {
+    //     query = { tutorEmail: tutorEmail };
+    //   }
+
+    //   const result = await sessionCollection.find(query).toArray();
+    //   res.send(result);
+    // });
+    app.get("/session", async (req, res) => {
+      const page = parseInt(req.query.page) || 1; // Page number from query parameter
+      const limit = 6; // Number of items per page
+      const skip = (page - 1) * limit; // Skip the previous pages data
+    
+      let query = {}; // Default query to get all sessions
+    
+      // If tutorEmail is passed, filter by tutorEmail (but not required for the paginated page)
+      const tutorEmail = req.query.tutorEmail;
       if (tutorEmail) {
         query = { tutorEmail: tutorEmail };
       }
-
-      const result = await sessionCollection.find(query).toArray();
-      res.send(result);
+    
+      try {
+        // Get total sessions for pagination info
+        const totalSessions = await sessionCollection.countDocuments(query);
+    
+        // Fetch sessions for the current page
+        const sessions = await sessionCollection.find(query).skip(skip).limit(limit).toArray();
+    
+        res.send({
+          sessions,
+          totalPages: Math.ceil(totalSessions / limit), // Calculate total pages for pagination
+          currentPage: page
+        });
+      } catch (error) {
+        res.status(500).send("Error fetching sessions");
+      }
     });
+    
     // session find  One by Id
     app.get("/session/:id", async (req, res) => {
       const id = req.params.id;
