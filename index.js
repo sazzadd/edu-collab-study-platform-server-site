@@ -51,38 +51,73 @@ async function run() {
       const result = await sessionCollection.findOne(query);
       res.send(result);
     });
-    // Update session status to approved or pending
-    // Update session status to approved, pending, or rejected
-    // Update session status to approved, pending, or rejected
+  
+  
+
+    // app.patch("/session/:id", async (req, res) => {
+    //   const { id } = req.params;
+    //   const { registrationFee, status, adminFeedback } = req.body; // Receive feedback for rejection
+
+    //   try {
+    //     // Check if valid status
+    //     if (!["pending", "approved", "rejected"].includes(status)) {
+    //       return res.status(400).send("Invalid status");
+    //     }
+
+    //     // Build update object
+    //     const updateFields = { status };
+    //     if (status === "rejected" && adminFeedback) {
+    //       updateFields.adminFeedback = adminFeedback;
+    //     }
+    //     if (status === "approved" && registrationFee !== undefined) {
+    //       updateFields.registrationFee = registrationFee;
+    //     }
+
+    //     const result = await sessionCollection.updateOne(
+    //       { _id: new ObjectId(id) },
+    //       { $set: updateFields }
+    //     );
+
+    //     res.send(result);
+    //   } catch (error) {
+    //     res.status(500).send("Error updating session status");
+    //   }
+    // });
+
+
+
     app.patch("/session/:id", async (req, res) => {
       const { id } = req.params;
-      const { registrationFee, status, adminFeedback } = req.body; // Receive feedback for rejection
-
+      const { registrationFee, status, adminFeedback, sessionTitle, description } = req.body;
+    
       try {
         // Check if valid status
-        if (!["pending", "approved", "rejected"].includes(status)) {
-          return res.status(400).send("Invalid status");
+        if (!["pending", "approved", "rejected"].includes(status) && !sessionTitle && !description) {
+          return res.status(400).send("Invalid data");
         }
-
+    
         // Build update object
-        const updateFields = { status };
-        if (status === "rejected" && adminFeedback) {
-          updateFields.adminFeedback = adminFeedback;
-        }
-        if (status === "approved" && registrationFee !== undefined) {
-          updateFields.registrationFee = registrationFee;
-        }
-
+        const updateFields = {};
+        if (status) updateFields.status = status;
+        if (status === "rejected" && adminFeedback) updateFields.adminFeedback = adminFeedback;
+        if (status === "approved" && registrationFee !== undefined) updateFields.registrationFee = registrationFee;
+        if (sessionTitle) updateFields.sessionTitle = sessionTitle;
+        if (description) updateFields.description = description;
+    
         const result = await sessionCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: updateFields }
         );
-
+    
         res.send(result);
       } catch (error) {
-        res.status(500).send("Error updating session status");
+        res.status(500).send("Error updating session");
       }
     });
+
+// ==========================================
+
+
 
     // Reject session (delete it)
     app.delete("/session/:id", async (req, res) => {
@@ -121,11 +156,7 @@ async function run() {
       }
     });
 
-    // user api
-    // app.get("/users", async (req, res) => {
-    //   const result = await userCollection.find().toArray();
-    //   res.send(result);
-    // });
+
     app.get("/users", async (req, res) => {
       const { searchText } = req.query; // Extract search text from query params
       let query = {};
