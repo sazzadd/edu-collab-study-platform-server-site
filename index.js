@@ -54,38 +54,6 @@ async function run() {
   
   
 
-    // app.patch("/session/:id", async (req, res) => {
-    //   const { id } = req.params;
-    //   const { registrationFee, status, adminFeedback } = req.body; // Receive feedback for rejection
-
-    //   try {
-    //     // Check if valid status
-    //     if (!["pending", "approved", "rejected"].includes(status)) {
-    //       return res.status(400).send("Invalid status");
-    //     }
-
-    //     // Build update object
-    //     const updateFields = { status };
-    //     if (status === "rejected" && adminFeedback) {
-    //       updateFields.adminFeedback = adminFeedback;
-    //     }
-    //     if (status === "approved" && registrationFee !== undefined) {
-    //       updateFields.registrationFee = registrationFee;
-    //     }
-
-    //     const result = await sessionCollection.updateOne(
-    //       { _id: new ObjectId(id) },
-    //       { $set: updateFields }
-    //     );
-
-    //     res.send(result);
-    //   } catch (error) {
-    //     res.status(500).send("Error updating session status");
-    //   }
-    // });
-
-
-
     app.patch("/session/:id", async (req, res) => {
       const { id } = req.params;
       const { registrationFee, status, adminFeedback, sessionTitle, description } = req.body;
