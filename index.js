@@ -28,6 +28,9 @@ async function run() {
   const notesCollection = client
     .db("collaborativeStudyPaltform")
     .collection("notes");
+    const bookedCollection = client
+    .db("collaborativeStudyPaltform")
+    .collection("booked");
   try {
     // ================================
     // session api
@@ -281,6 +284,16 @@ async function run() {
         console.error("Error updating note:", error);
         res.status(500).send({ message: "Failed to update the note" });
       }
+    });
+
+    // ================
+    // booked colldection
+    // ==================
+    app.post("/booked", async (req, res) => {
+      const bookedItem = req.body;
+
+      const result = await bookedCollection.insertOne(session);
+      res.send(result);
     });
 
     // Connect the client to the server	(optional starting in v4.7)
