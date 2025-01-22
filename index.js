@@ -292,7 +292,7 @@ async function run() {
     app.post("/booked", async (req, res) => {
       const bookedItem = req.body;
 
-      const result = await bookedCollection.insertOne(session);
+      const result = await bookedCollection.insertOne(bookedItem);
       res.send(result);
     });
 
