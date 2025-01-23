@@ -31,7 +31,7 @@ async function run() {
   const bookedCollection = client
     .db("collaborativeStudyPaltform")
     .collection("booked");
-    const materialsCollection = client
+  const materialsCollection = client
     .db("collaborativeStudyPaltform")
     .collection("material");
   try {
@@ -80,19 +80,18 @@ async function run() {
     //   }
     // });
 
-
     // app.get("/session", async (req, res) => {
     //   const page = parseInt(req.query.page) || 1; // Page number
     //   const limit = 6; // Items per page
     //   const skip = (page - 1) * limit;
-    
+
     //   let query = {};
     //   const email = req.query.email;
-      
+
     //   if (email) {
     //     query.tutorEmail  = email; // Searching by 'email' instead of 'tutorEmail'
     //   }
-    
+
     //   try {
     //     const totalSessions = await sessionCollection.countDocuments(query);
     //     const sessions = await sessionCollection
@@ -100,7 +99,7 @@ async function run() {
     //       .skip(skip)
     //       .limit(limit)
     //       .toArray();
-    
+
     //     res.send({
     //       sessions,
     //       totalPages: Math.ceil(totalSessions / limit),
@@ -114,26 +113,26 @@ async function run() {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
       const skip = (page - 1) * limit;
-    
+
       let query = {}; // Initialize an empty query object
       const email = req.query.email; // Extract 'email' from query parameters
-    
+
       // Fix: Use 'email' to build the query correctly
       if (email) {
         query.tutorEmail = email; // Searching by 'tutorEmail' using the provided email
       }
-    
+
       try {
         // Count total documents matching the query
         const totalSessions = await sessionCollection.countDocuments(query);
-        
+
         // Fetch the paginated results
         const sessions = await sessionCollection
           .find(query)
           .skip(skip)
           .limit(limit)
           .toArray();
-    
+
         // Respond with the sessions, total pages, and current page
         res.send({
           sessions,
@@ -145,7 +144,7 @@ async function run() {
         res.status(500).send({ error: "Error fetching sessions" });
       }
     });
-    
+
     // session find  One by Id
     app.get("/session/:id", async (req, res) => {
       const id = req.params.id;
@@ -377,7 +376,7 @@ async function run() {
       res.send(result);
     });
     // =====================
-    // booked colldection
+    // material colldection
     // =====================
     app.post("/material", async (req, res) => {
       const material = req.body;
@@ -388,10 +387,9 @@ async function run() {
 
     app.get("/material", async (req, res) => {
       const email = req.query.email;
-    
-      // যদি ইমেইল থাকে, তাহলে query তে ইমেইল ব্যবহার করা হবে
+
       const query = email ? { tutorEmail: email } : {};
-    
+
       try {
         const result = await materialsCollection.find(query).toArray();
         res.send(result);
@@ -418,6 +416,38 @@ async function run() {
         res.send({ message: "material deleted successfully" });
       } catch (error) {
         res.status(500).send("material deleting session");
+      }
+    });
+    // delte materil for admin
+    app.delete("/admin/material/:id", async (req, res) => {
+      const { id } = req.params;
+      try {
+        const result = await materialsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 0) {
+          return res.status(404).send("material not found");
+        }
+        res.send({ message: "material deleted successfully" });
+      } catch (error) {
+        res.status(500).send("material deleting session");
+      }
+    });
+    app.patch("/material/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      try {
+        const result = await materialsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
+
+        console.log("Patch result:", result);
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating material:", error);
+        res.status(500).send({ message: "Failed to update material" });
       }
     });
 
