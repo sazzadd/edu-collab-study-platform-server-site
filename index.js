@@ -28,9 +28,12 @@ async function run() {
   const notesCollection = client
     .db("collaborativeStudyPaltform")
     .collection("notes");
-    const bookedCollection = client
+  const bookedCollection = client
     .db("collaborativeStudyPaltform")
     .collection("booked");
+    const materialsCollection = client
+    .db("collaborativeStudyPaltform")
+    .collection("material");
   try {
     // ================================
     // session api
@@ -47,21 +50,56 @@ async function run() {
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
+    // app.get("/session", async (req, res) => {
+    //   const page = parseInt(req.query.page) || 1; // Page number
+    //   const limit = 6; // Items per page
+    //   const skip = (page - 1) * limit;
+
+    //   let query = {};
+    //   const tutorEmail = req.query.tutorEmail;
+
+    //   if (tutorEmail) {
+    //     query.tutorEmail = tutorEmail;
+    //   }
+
+    //   try {
+    //     const totalSessions = await sessionCollection.countDocuments(query);
+    //     const sessions = await sessionCollection
+    //       .find(query)
+    //       .skip(skip)
+    //       .limit(limit)
+    //       .toArray();
+
+    //     res.send({
+    //       sessions,
+    //       totalPages: Math.ceil(totalSessions / limit),
+    //       currentPage: page,
+    //     });
+    //   } catch (error) {
+    //     res.status(500).send({ error: "Error fetching sessions" });
+    //   }
+    // });
+
+
     app.get("/session", async (req, res) => {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
       const skip = (page - 1) * limit;
     
       let query = {};
-      const tutorEmail = req.query.tutorEmail;
+      const email = req.query.email;
     
-      if (tutorEmail) {
-        query.tutorEmail = tutorEmail;
+      if (email) {
+        query.email = email; // Searching by 'email' instead of 'tutorEmail'
       }
     
       try {
         const totalSessions = await sessionCollection.countDocuments(query);
-        const sessions = await sessionCollection.find(query).skip(skip).limit(limit).toArray();
+        const sessions = await sessionCollection
+          .find(query)
+          .skip(skip)
+          .limit(limit)
+          .toArray();
     
         res.send({
           sessions,
@@ -72,6 +110,7 @@ async function run() {
         res.status(500).send({ error: "Error fetching sessions" });
       }
     });
+    
     // session find  One by Id
     app.get("/session/:id", async (req, res) => {
       const id = req.params.id;
@@ -79,41 +118,49 @@ async function run() {
       const result = await sessionCollection.findOne(query);
       res.send(result);
     });
-  
-  
 
     app.patch("/session/:id", async (req, res) => {
       const { id } = req.params;
-      const { registrationFee, status, adminFeedback, sessionTitle, description } = req.body;
-    
+      const {
+        registrationFee,
+        status,
+        adminFeedback,
+        sessionTitle,
+        description,
+      } = req.body;
+
       try {
         // Check if valid status
-        if (!["pending", "approved", "rejected"].includes(status) && !sessionTitle && !description) {
+        if (
+          !["pending", "approved", "rejected"].includes(status) &&
+          !sessionTitle &&
+          !description
+        ) {
           return res.status(400).send("Invalid data");
         }
-    
+
         // Build update object
         const updateFields = {};
         if (status) updateFields.status = status;
-        if (status === "rejected" && adminFeedback) updateFields.adminFeedback = adminFeedback;
-        if (status === "approved" && registrationFee !== undefined) updateFields.registrationFee = registrationFee;
+        if (status === "rejected" && adminFeedback)
+          updateFields.adminFeedback = adminFeedback;
+        if (status === "approved" && registrationFee !== undefined)
+          updateFields.registrationFee = registrationFee;
         if (sessionTitle) updateFields.sessionTitle = sessionTitle;
         if (description) updateFields.description = description;
-    
+
         const result = await sessionCollection.updateOne(
           { _id: new ObjectId(id) },
           { $set: updateFields }
         );
-    
+
         res.send(result);
       } catch (error) {
         res.status(500).send("Error updating session");
       }
     });
 
-// ==========================================
-
-
+    // ==========================================
 
     // Reject session (delete it)
     app.delete("/session/:id", async (req, res) => {
@@ -152,13 +199,12 @@ async function run() {
       }
     });
 
-
     app.get("/users", async (req, res) => {
       const { searchText } = req.query; // Extract search text from query params
       let query = {};
 
       if (searchText) {
-        // Search by name or email, 
+        // Search by name or email,
         query = {
           $or: [
             { name: { $regex: searchText, $options: "i" } }, // Case-insensitive search by name
