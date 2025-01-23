@@ -387,11 +387,38 @@ async function run() {
     });
 
     app.get("/material", async (req, res) => {
-      
       const email = req.query.email;
-      const query = {tutorEmail:email}
-      const result = await materialsCollection.find(query).toArray();
+    
+      // যদি ইমেইল থাকে, তাহলে query তে ইমেইল ব্যবহার করা হবে
+      const query = email ? { tutorEmail: email } : {};
+    
+      try {
+        const result = await materialsCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+        res.status(500).send({ message: "Failed to fetch materials" });
+      }
+    });
+    app.get("/material/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await materialsCollection.findOne(query);
       res.send(result);
+    });
+    app.delete("/material/:id", async (req, res) => {
+      const { id } = req.params;
+      try {
+        const result = await materialsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 0) {
+          return res.status(404).send("material not found");
+        }
+        res.send({ message: "material deleted successfully" });
+      } catch (error) {
+        res.status(500).send("material deleting session");
+      }
     });
 
     // Connect the client to the server	(optional starting in v4.7)
