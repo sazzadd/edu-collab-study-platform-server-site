@@ -81,32 +81,67 @@ async function run() {
     // });
 
 
+    // app.get("/session", async (req, res) => {
+    //   const page = parseInt(req.query.page) || 1; // Page number
+    //   const limit = 6; // Items per page
+    //   const skip = (page - 1) * limit;
+    
+    //   let query = {};
+    //   const email = req.query.email;
+      
+    //   if (email) {
+    //     query.tutorEmail  = email; // Searching by 'email' instead of 'tutorEmail'
+    //   }
+    
+    //   try {
+    //     const totalSessions = await sessionCollection.countDocuments(query);
+    //     const sessions = await sessionCollection
+    //       .find(query)
+    //       .skip(skip)
+    //       .limit(limit)
+    //       .toArray();
+    
+    //     res.send({
+    //       sessions,
+    //       totalPages: Math.ceil(totalSessions / limit),
+    //       currentPage: page,
+    //     });
+    //   } catch (error) {
+    //     res.status(500).send({ error: "Error fetching sessions" });
+    //   }
+    // });
     app.get("/session", async (req, res) => {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
       const skip = (page - 1) * limit;
     
-      let query = {};
-      const email = req.query.email;
+      let query = {}; // Initialize an empty query object
+      const email = req.query.email; // Extract 'email' from query parameters
     
+      // Fix: Use 'email' to build the query correctly
       if (email) {
-        query.email = email; // Searching by 'email' instead of 'tutorEmail'
+        query.tutorEmail = email; // Searching by 'tutorEmail' using the provided email
       }
     
       try {
+        // Count total documents matching the query
         const totalSessions = await sessionCollection.countDocuments(query);
+        
+        // Fetch the paginated results
         const sessions = await sessionCollection
           .find(query)
           .skip(skip)
           .limit(limit)
           .toArray();
     
+        // Respond with the sessions, total pages, and current page
         res.send({
           sessions,
           totalPages: Math.ceil(totalSessions / limit),
           currentPage: page,
         });
       } catch (error) {
+        // Handle errors
         res.status(500).send({ error: "Error fetching sessions" });
       }
     });
@@ -332,13 +367,30 @@ async function run() {
       }
     });
 
-    // ================
+    // =====================
     // booked colldection
-    // ==================
+    // =====================
     app.post("/booked", async (req, res) => {
       const bookedItem = req.body;
 
       const result = await bookedCollection.insertOne(bookedItem);
+      res.send(result);
+    });
+    // =====================
+    // booked colldection
+    // =====================
+    app.post("/material", async (req, res) => {
+      const material = req.body;
+
+      const result = await materialsCollection.insertOne(material);
+      res.send(result);
+    });
+
+    app.get("/material", async (req, res) => {
+      
+      const email = req.query.email;
+      const query = {tutorEmail:email}
+      const result = await materialsCollection.find(query).toArray();
       res.send(result);
     });
 
