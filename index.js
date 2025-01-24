@@ -369,12 +369,59 @@ async function run() {
     // =====================
     // booked colldection
     // =====================
+    
+    // app.post("/booked", async (req, res) => {
+    //   const bookedItem = req.body;
+
+    //   const result = await bookedCollection.insertOne(bookedItem);
+    //   res.send(result);
+    // });
     app.post("/booked", async (req, res) => {
       const bookedItem = req.body;
-
+      const { sessionId, bookedUserEmail } = bookedItem;
+    
+      // Check if the session is already booked by the user
+      const existingBooking = await bookedCollection.findOne({
+        sessionId: sessionId,
+        bookedUserEmail: bookedUserEmail,
+      });
+    
+      if (existingBooking) {
+        return res.send({
+          success: false,
+          message: "You have already booked this session.",
+        });
+      }
+    
+      // If not booked, proceed with booking
       const result = await bookedCollection.insertOne(bookedItem);
-      res.send(result);
+      res.send({ success: true, result });
     });
+    
+    app.get("/booked", async (req, res) => {
+      const email = req.query.email;
+
+      const query = email ? { bookedUserEmail: email } : {};
+
+      try {
+        const result = await bookedCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+        res.status(500).send({ message: "Failed to fetch materials" });
+      }
+    });
+    app.get("/booked/check", async (req, res) => {
+      const { sessionId, userEmail } = req.query;
+    
+      const isBooked = await bookedCollection.findOne({
+        sessionId: sessionId,
+        bookedUserEmail: userEmail,
+      });
+    
+      res.send({ isBooked: !!isBooked });
+    });
+  
     // =====================
     // material colldection
     // =====================
@@ -451,6 +498,20 @@ async function run() {
       }
     });
 
+    
+    app.get("/material", async (req, res) => {
+      const email = req.query.email;
+
+      const query = email ? { tutorEmail: email } : {};
+
+      try {
+        const result = await materialsCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+        res.status(500).send({ message: "Failed to fetch materials" });
+      }
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
