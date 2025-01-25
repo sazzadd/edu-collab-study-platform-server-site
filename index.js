@@ -34,6 +34,9 @@ async function run() {
   const materialsCollection = client
     .db("collaborativeStudyPaltform")
     .collection("material");
+    const reviewCollection = client
+    .db("collaborativeStudyPaltform")
+    .collection("review");
   try {
     // ================================
     // session api
@@ -512,6 +515,59 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch materials" });
       }
     });
+    app.get("/reviews", async (req, res) => {
+      try {
+        const reviews = await reviewCollection.find().toArray();
+        res.send(reviews);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).send({ message: "Failed to fetch reviews." });
+      }
+    });
+    
+    // review 
+    app.post("/review", async (req, res) => {
+      const review = req.body;
+      const { userEmail, sessionId } = review;
+    
+      try {
+      
+        const existingReview = await reviewCollection.findOne({ userEmail, sessionId });
+    
+        if (existingReview) {
+        
+          return res.status(400).send({ message: "You have already added a review for this session." });
+        }
+    
+        
+        const result = await reviewCollection.insertOne(review);
+        res.send(result);
+      } catch (error) {
+        console.error("Error inserting review:", error);
+        res.status(500).send({ message: "Failed to add review." });
+      }
+    });
+  
+    app.get("/reviews", async (req, res) => {
+      const { sessionId } = req.query; // কুয়েরি প্যারামিটার থেকে sessionId নিন
+    
+      try {
+        // যদি sessionId দেওয়া থাকে, তাহলে নির্দিষ্ট sessionId এর রিভিউ খুঁজে বের করুন
+        if (sessionId) {
+          const reviews = await reviewCollection.find({ sessionId }).toArray();
+          return res.send(reviews); // নির্দিষ্ট sessionId এর রিভিউ
+        }
+    
+        // যদি sessionId না থাকে, তাহলে সব রিভিউ ফেরত দিন
+        const allReviews = await reviewCollection.find().toArray();
+        res.send(allReviews); // সব রিভিউ
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).send({ message: "Failed to fetch reviews." });
+      }
+    });
+  
+  
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
