@@ -3,7 +3,7 @@ const app = expres();
 require("dotenv").config();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
-
+const  jwt = require('jsonwebtoken');
 // MIDLEWARE
 app.use(cors());
 app.use(expres.json());
@@ -34,7 +34,7 @@ async function run() {
   const materialsCollection = client
     .db("collaborativeStudyPaltform")
     .collection("material");
-    const reviewCollection = client
+  const reviewCollection = client
     .db("collaborativeStudyPaltform")
     .collection("review");
   try {
@@ -53,65 +53,7 @@ async function run() {
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
-    // app.get("/session", async (req, res) => {
-    //   const page = parseInt(req.query.page) || 1; // Page number
-    //   const limit = 6; // Items per page
-    //   const skip = (page - 1) * limit;
-
-    //   let query = {};
-    //   const tutorEmail = req.query.tutorEmail;
-
-    //   if (tutorEmail) {
-    //     query.tutorEmail = tutorEmail;
-    //   }
-
-    //   try {
-    //     const totalSessions = await sessionCollection.countDocuments(query);
-    //     const sessions = await sessionCollection
-    //       .find(query)
-    //       .skip(skip)
-    //       .limit(limit)
-    //       .toArray();
-
-    //     res.send({
-    //       sessions,
-    //       totalPages: Math.ceil(totalSessions / limit),
-    //       currentPage: page,
-    //     });
-    //   } catch (error) {
-    //     res.status(500).send({ error: "Error fetching sessions" });
-    //   }
-    // });
-
-    // app.get("/session", async (req, res) => {
-    //   const page = parseInt(req.query.page) || 1; // Page number
-    //   const limit = 6; // Items per page
-    //   const skip = (page - 1) * limit;
-
-    //   let query = {};
-    //   const email = req.query.email;
-
-    //   if (email) {
-    //     query.tutorEmail  = email; // Searching by 'email' instead of 'tutorEmail'
-    //   }
-
-    //   try {
-    //     const totalSessions = await sessionCollection.countDocuments(query);
-    //     const sessions = await sessionCollection
-    //       .find(query)
-    //       .skip(skip)
-    //       .limit(limit)
-    //       .toArray();
-
-    //     res.send({
-    //       sessions,
-    //       totalPages: Math.ceil(totalSessions / limit),
-    //       currentPage: page,
-    //     });
-    //   } catch (error) {
-    //     res.status(500).send({ error: "Error fetching sessions" });
-    //   }
-    // });
+  
     app.get("/session", async (req, res) => {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
@@ -372,7 +314,7 @@ async function run() {
     // =====================
     // booked colldection
     // =====================
-    
+
     // app.post("/booked", async (req, res) => {
     //   const bookedItem = req.body;
 
@@ -382,25 +324,25 @@ async function run() {
     app.post("/booked", async (req, res) => {
       const bookedItem = req.body;
       const { sessionId, bookedUserEmail } = bookedItem;
-    
+
       // Check if the session is already booked by the user
       const existingBooking = await bookedCollection.findOne({
         sessionId: sessionId,
         bookedUserEmail: bookedUserEmail,
       });
-    
+
       if (existingBooking) {
         return res.send({
           success: false,
           message: "You have already booked this session.",
         });
       }
-    
+
       // If not booked, proceed with booking
       const result = await bookedCollection.insertOne(bookedItem);
       res.send({ success: true, result });
     });
-    
+
     app.get("/booked", async (req, res) => {
       const email = req.query.email;
 
@@ -416,15 +358,99 @@ async function run() {
     });
     app.get("/booked/check", async (req, res) => {
       const { sessionId, userEmail } = req.query;
-    
+
       const isBooked = await bookedCollection.findOne({
         sessionId: sessionId,
         bookedUserEmail: userEmail,
       });
-    
+
       res.send({ isBooked: !!isBooked });
     });
-  
+
+    // ===========
+    // review
+    // ===========
+    app.get("/reviews", async (req, res) => {
+      try {
+        const reviews = await reviewCollection.find().toArray();
+        res.send(reviews);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).send({ message: "Failed to fetch reviews." });
+      }
+    });
+
+    // review
+    app.post("/review", async (req, res) => {
+      const review = req.body;
+      const { userEmail, sessionId } = review;
+
+      try {
+        const existingReview = await reviewCollection.findOne({
+          userEmail,
+          sessionId,
+        });
+
+        if (existingReview) {
+          return res.status(400).send({
+            message: "You have already added a review for this session.",
+          });
+        }
+
+        const result = await reviewCollection.insertOne(review);
+        res.send(result);
+      } catch (error) {
+        console.error("Error inserting review:", error);
+        res.status(500).send({ message: "Failed to add review." });
+      }
+    });
+
+    app.get("/reviews", async (req, res) => {
+      const { sessionId } = req.query;
+      try {
+        if (sessionId) {
+          const reviews = await reviewCollection.find({ sessionId }).toArray();
+          return res.send(reviews);
+        }
+
+        const allReviews = await reviewCollection.find().toArray();
+        res.send(allReviews);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).send({ message: "Failed to fetch reviews." });
+      }
+    });
+    // avg rating
+    app.get("/get-average-review/:id", async (req, res) => {
+      try {
+        const avRating = await reviewCollection
+          .aggregate([
+            {
+              $match: { sessionId: req.params.id },
+            },
+            {
+              $group: {
+                _id: null,
+                averageRating: { $avg: "$rating" },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                averageRating: 1,
+              },
+            },
+          ])
+          .next();
+          // console.log(avRating);
+          res.send(avRating);
+      } catch (error) {
+        res.status(500).send({
+          massage: `internal server error- ${error.massage}`,
+        });
+      }
+    });
+
     // =====================
     // material colldection
     // =====================
@@ -501,7 +527,6 @@ async function run() {
       }
     });
 
-    
     app.get("/material", async (req, res) => {
       const email = req.query.email;
 
@@ -515,59 +540,30 @@ async function run() {
         res.status(500).send({ message: "Failed to fetch materials" });
       }
     });
-    app.get("/reviews", async (req, res) => {
+    // view booked mateial student
+    app.get("/get-student-material/:email", async (req, res) => {
       try {
-        const reviews = await reviewCollection.find().toArray();
-        res.send(reviews);
+        const bookedSessions = await bookedCollection
+          .find({
+            bookedUserEmail: req.params.email,
+          })
+          .toArray();
+        const bookedSessionsIds = bookedSessions?.map(
+          (session) => session.sessionId
+        );
+        const materials = await materialsCollection
+          .find({
+            sessionId: { $in: bookedSessionsIds },
+          })
+          .toArray();
+        res.send(materials);
       } catch (error) {
-        console.error("Error fetching reviews:", error);
-        res.status(500).send({ message: "Failed to fetch reviews." });
+        res.status(500).send({
+          massage: `internal server error- ${error.massage}`,
+        });
       }
     });
-    
-    // review 
-    app.post("/review", async (req, res) => {
-      const review = req.body;
-      const { userEmail, sessionId } = review;
-    
-      try {
-      
-        const existingReview = await reviewCollection.findOne({ userEmail, sessionId });
-    
-        if (existingReview) {
-        
-          return res.status(400).send({ message: "You have already added a review for this session." });
-        }
-    
-        
-        const result = await reviewCollection.insertOne(review);
-        res.send(result);
-      } catch (error) {
-        console.error("Error inserting review:", error);
-        res.status(500).send({ message: "Failed to add review." });
-      }
-    });
-  
-    app.get("/reviews", async (req, res) => {
-      const { sessionId } = req.query; // কুয়েরি প্যারামিটার থেকে sessionId নিন
-    
-      try {
-        // যদি sessionId দেওয়া থাকে, তাহলে নির্দিষ্ট sessionId এর রিভিউ খুঁজে বের করুন
-        if (sessionId) {
-          const reviews = await reviewCollection.find({ sessionId }).toArray();
-          return res.send(reviews); // নির্দিষ্ট sessionId এর রিভিউ
-        }
-    
-        // যদি sessionId না থাকে, তাহলে সব রিভিউ ফেরত দিন
-        const allReviews = await reviewCollection.find().toArray();
-        res.send(allReviews); // সব রিভিউ
-      } catch (error) {
-        console.error("Error fetching reviews:", error);
-        res.status(500).send({ message: "Failed to fetch reviews." });
-      }
-    });
-  
-  
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
