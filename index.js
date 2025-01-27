@@ -3,7 +3,7 @@ const app = expres();
 require("dotenv").config();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
-const  jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 // MIDLEWARE
 app.use(cors());
 app.use(expres.json());
@@ -38,6 +38,33 @@ async function run() {
     .db("collaborativeStudyPaltform")
     .collection("review");
   try {
+    // jwt
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "2h",
+      });
+      res.send({ token });
+    });
+    // verify admin
+
+    // middleware
+    const verifyToken = (req, res, next) => {
+      console.log("inside verify token", req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ massage: "forbidden access" });
+      }
+      const token = req.headers.authorization.split(" ")[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ massage: "forbidden access" });
+        }
+        req.decoded = decoded;
+        next();
+      });
+      // next()
+    };
+
     // ================================
     // session api
     // ===============================
@@ -53,7 +80,7 @@ async function run() {
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
-  
+
     app.get("/session", async (req, res) => {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
@@ -167,6 +194,33 @@ async function run() {
     // ============================
     // users api
     // ============================
+    app.get("/users/admin/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ massage: "unauthorized access" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === "admin";
+      }
+      res.send({ admin });
+    });
+    app.get("/users/tutor/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ massage: "unauthorized access" });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      let tutor = false;
+      if (user) {
+        tutor = user?.role === "tutor";
+      }
+      res.send({ tutor });
+    });
+
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -366,6 +420,14 @@ async function run() {
 
       res.send({ isBooked: !!isBooked });
     });
+    // find one
+    app.get("/booked/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookedCollection.findOne(query);
+      res.send(result);
+    });
+
 
     // ===========
     // review
@@ -442,8 +504,8 @@ async function run() {
             },
           ])
           .next();
-          // console.log(avRating);
-          res.send(avRating);
+        // console.log(avRating);
+        res.send(avRating);
       } catch (error) {
         res.status(500).send({
           massage: `internal server error- ${error.massage}`,
@@ -494,7 +556,7 @@ async function run() {
         res.status(500).send("material deleting session");
       }
     });
-    // delte materil for admin
+    // delete materil for admin
     app.delete("/admin/material/:id", async (req, res) => {
       const { id } = req.params;
       try {
@@ -527,19 +589,19 @@ async function run() {
       }
     });
 
-    app.get("/material", async (req, res) => {
-      const email = req.query.email;
+    // app.get("/material",verifyToken, async (req, res) => {
+    //   const email = req.query.email;
 
-      const query = email ? { tutorEmail: email } : {};
+    //   const query = email ? { tutorEmail: email } : {};
 
-      try {
-        const result = await materialsCollection.find(query).toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching materials:", error);
-        res.status(500).send({ message: "Failed to fetch materials" });
-      }
-    });
+    //   try {
+    //     const result = await materialsCollection.find(query).toArray();
+    //     res.send(result);
+    //   } catch (error) {
+    //     console.error("Error fetching materials:", error);
+    //     res.status(500).send({ message: "Failed to fetch materials" });
+    //   }
+    // });
     // view booked mateial student
     app.get("/get-student-material/:email", async (req, res) => {
       try {
