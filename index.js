@@ -1,15 +1,23 @@
-const expres = require("express");
-const app = expres();
+const express = require("express");
+const app = express();
 require("dotenv").config();
-const cors = require("cors");
-const port = process.env.PORT || 5000;
-const jwt = require("jsonwebtoken");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const cors = require("cors");
+
+const port = process.env.PORT || 7000;
+const jwt = require("jsonwebtoken");
+
 // MIDLEWARE
-app.usecors({
-  origin: ["http://localhost:5173", "https://study-paltform.firebaseapp.com/"],
-});
-app.use(expres.json());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://study-paltform.firebaseapp.com",
+    ],
+  })
+);
+
+app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.krhx2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -83,7 +91,6 @@ async function run() {
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
     });
-
     app.get("/session", async (req, res) => {
       const page = parseInt(req.query.page) || 1; // Page number
       const limit = 6; // Items per page
@@ -258,6 +265,11 @@ async function run() {
       }
     });
 
+    app.get("/tutor", async (req, res) => {
+      const cursor = userCollection.find({ role: "tutor" });
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -632,16 +644,23 @@ async function run() {
     // payment
     // ============
     app.post("/create-payment-intent", async (req, res) => {
-      const {price} = req.body;
-      const amount = Math.round(price * 100);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
+      const { price } = req.body;
+      // const amount = Math.round(price * 100);
+      console.log(price);
+      // const paymentIntent = await stripe.paymentIntents.create({
+      //   amount: amount,
+      //   currency: "usd",
 
-        payment_method_types: ["card"],
+      //   payment_method_types: ["card"],
+      // });
+
+      res.send({
+        price,
       });
-
-    })
+      // res.send({
+      //   clientSecret: paymentIntent.client_secret,
+      // });
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
