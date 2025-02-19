@@ -306,7 +306,22 @@ async function run() {
         res.status(500).send({ message: "Failed to update role" });
       }
     });
-
+    app.get("/users/:email", async (req, res) => {
+      const userEmail = req.params.email;
+  
+      try {
+          const user = await userCollection.findOne({ email: userEmail });
+          if (user) {
+              res.json(user);
+          } else {
+              res.status(404).json({ message: "User not found" });
+          }
+      } catch (error) {
+          console.error("Error fetching user:", error);
+          res.status(500).json({ message: "Server error" });
+      }
+  });
+  
     // ============
     // notes api
     // ============
